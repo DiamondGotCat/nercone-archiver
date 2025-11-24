@@ -4,7 +4,7 @@ build-backend = "uv_build"
 
 [project]
 name = "nercone-archiver"
-version = "0.1.0"
+version = "0.1.1"
 description = "A simple and easy-to-use CLI tool for manipulating compressed files"
 readme = { file = "README.md", content-type = "text/markdown" }
 authors = [
@@ -25,4 +25,4 @@ classifiers = [
 ]
 
 [project.scripts]
-nyarchiver = "nercone_archiver.cli:main"
+nyarchiver = "nercone_archiver.__main__:main"

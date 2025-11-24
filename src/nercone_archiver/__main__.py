@@ -8,109 +8,6 @@ from nercone_modern.color import ModernColor
 
 logger = ModernLogging("nyarchiver", show_level=False, show_proc=False)
 
-def cli_mode():
-    parser = argparse.ArgumentParser(prog="nyarchiver", description="Nercone Archiver")
-    subparsers = parser.add_subparsers(dest="command", help="Command to execute")
-
-    def add_auth_args(p):
-        p.add_argument("--password", "-p", help="Password for encrypted archives", default=None)
-
-    def add_output_args(p):
-        p.add_argument("--out", "-o", help="Output archive path (default: overwrite original if modifying)", default=None)
-        p.add_argument("--format", "-f", help="Force compression format (zip, tar, 7z, etc.)", default=None)
-
-    # LS: List files
-    parser_ls = subparsers.add_parser("ls", help="List files in an archive")
-    parser_ls.add_argument("archive", help="Path to archive file")
-    add_auth_args(parser_ls)
-
-    # CREATE: Create new archive
-    parser_create = subparsers.add_parser("create", help="Create a new archive")
-    parser_create.add_argument("archive", help="Destination archive path")
-    parser_create.add_argument("source", help="Source file or directory to add")
-    parser_create.add_argument("--dest-path", "-d", help="Path inside the archive", default="")
-    add_auth_args(parser_create)
-    parser_create.add_argument("--format", "-f", help="Force compression format", default=None)
-
-    # EXTRACT: Extract archive
-    parser_extract = subparsers.add_parser("extract", help="Extract an archive")
-    parser_extract.add_argument("archive", help="Path to archive file")
-    parser_extract.add_argument("dest", nargs="?", help="Destination directory (default: current dir)", default=".")
-    add_auth_args(parser_extract)
-
-    # ADD: Add file to EXISTING archive
-    parser_add = subparsers.add_parser("add", help="Add file/dir to an existing archive")
-    parser_add.add_argument("archive", help="Path to existing archive")
-    parser_add.add_argument("source", help="Source file or directory to add")
-    parser_add.add_argument("--dest-path", "-d", help="Path inside the archive", default="")
-    add_auth_args(parser_add)
-    add_output_args(parser_add)
-
-    # RM: Remove file from EXISTING archive
-    parser_rm = subparsers.add_parser("rm", help="Remove file/dir from an existing archive")
-    parser_rm.add_argument("archive", help="Path to existing archive")
-    parser_rm.add_argument("target", help="Path inside the archive to remove")
-    add_auth_args(parser_rm)
-    add_output_args(parser_rm)
-
-    args = parser.parse_args()
-
-    if not args.command:
-        return interactive_mode()
-
-    mgr = ArchiveManager()
-    try:
-        # --- LS ---
-        if args.command == "ls":
-            mgr.import_archive(args.archive, password=args.password)
-            files = mgr.list_files()
-            logger.log(f"{ModernColor.color('green')}Files in {args.archive}:{ModernColor.RESET}")
-            if not files:
-                logger.log(" (Empty) ")
-            for f in files:
-                logger.log(f" - {f}")
-
-        # --- CREATE ---
-        elif args.command == "create":
-            mgr.add(args.source, dest_path_in_archive=args.dest_path)
-            if args.password:
-                mgr.encrypt(args.password)
-            mgr.export(args.archive, compression_format=args.format)
-
-        # --- EXTRACT ---
-        elif args.command == "extract":
-            mgr.import_archive(args.archive, password=args.password)
-            dest_path = os.path.abspath(args.dest)
-            os.makedirs(dest_path, exist_ok=True)
-
-            logger.log(f"Extracting to {dest_path}...")
-            shutil.copytree(mgr.temp_dir, dest_path, dirs_exist_ok=True)
-            logger.log("Extraction finished.")
-
-        # --- ADD (Update) ---
-        elif args.command == "add":
-            mgr.import_archive(args.archive, password=args.password)
-            mgr.add(args.source, dest_path_in_archive=args.dest_path)
-            if args.password:
-                mgr.encrypt(args.password)
-            output_path = args.out if args.out else args.archive
-            mgr.export(output_path, compression_format=args.format)
-
-        # --- RM (Remove) ---
-        elif args.command == "rm":
-            mgr.import_archive(args.archive, password=args.password)
-            mgr.remove(args.target)
-            if args.password:
-                mgr.encrypt(args.password)
-            output_path = args.out if args.out else args.archive
-            mgr.export(output_path, compression_format=args.format)
-
-    except Exception as e:
-        logger.log(str(e), "ERROR")
-        sys.exit(1)
-    finally:
-        mgr.close()
-
 def interactive_mode():
     logger.log("Entering Interactive Mode. Type 'help' for commands.", "INFO")
 
@@ -256,5 +153,108 @@ def interactive_mode():
     finally:
         mgr.close()
 
+def main():
+    parser = argparse.ArgumentParser(prog="nyarchiver", description="Nercone Archiver")
+    subparsers = parser.add_subparsers(dest="command", help="Command to execute")
+
+    def add_auth_args(p):
+        p.add_argument("--password", "-p", help="Password for encrypted archives", default=None)
+
+    def add_output_args(p):
+        p.add_argument("--out", "-o", help="Output archive path (default: overwrite original if modifying)", default=None)
+        p.add_argument("--format", "-f", help="Force compression format (zip, tar, 7z, etc.)", default=None)
+
+    # LS: List files
+    parser_ls = subparsers.add_parser("ls", help="List files in an archive")
+    parser_ls.add_argument("archive", help="Path to archive file")
+    add_auth_args(parser_ls)
+
+    # CREATE: Create new archive
+    parser_create = subparsers.add_parser("create", help="Create a new archive")
+    parser_create.add_argument("archive", help="Destination archive path")
+    parser_create.add_argument("source", help="Source file or directory to add")
+    parser_create.add_argument("--dest-path", "-d", help="Path inside the archive", default="")
+    add_auth_args(parser_create)
+    parser_create.add_argument("--format", "-f", help="Force compression format", default=None)
+
+    # EXTRACT: Extract archive
+    parser_extract = subparsers.add_parser("extract", help="Extract an archive")
+    parser_extract.add_argument("archive", help="Path to archive file")
+    parser_extract.add_argument("dest", nargs="?", help="Destination directory (default: current dir)", default=".")
+    add_auth_args(parser_extract)
+
+    # ADD: Add file to EXISTING archive
+    parser_add = subparsers.add_parser("add", help="Add file/dir to an existing archive")
+    parser_add.add_argument("archive", help="Path to existing archive")
+    parser_add.add_argument("source", help="Source file or directory to add")
+    parser_add.add_argument("--dest-path", "-d", help="Path inside the archive", default="")
+    add_auth_args(parser_add)
+    add_output_args(parser_add)
+
+    # RM: Remove file from EXISTING archive
+    parser_rm = subparsers.add_parser("rm", help="Remove file/dir from an existing archive")
+    parser_rm.add_argument("archive", help="Path to existing archive")
+    parser_rm.add_argument("target", help="Path inside the archive to remove")
+    add_auth_args(parser_rm)
+    add_output_args(parser_rm)
+
+    args = parser.parse_args()
+
+    if not args.command:
+        return interactive_mode()
+
+    mgr = ArchiveManager()
+    try:
+        # --- LS ---
+        if args.command == "ls":
+            mgr.import_archive(args.archive, password=args.password)
+            files = mgr.list_files()
+            logger.log(f"{ModernColor.color('green')}Files in {args.archive}:{ModernColor.RESET}")
+            if not files:
+                logger.log(" (Empty) ")
+            for f in files:
+                logger.log(f" - {f}")
+
+        # --- CREATE ---
+        elif args.command == "create":
+            mgr.add(args.source, dest_path_in_archive=args.dest_path)
+            if args.password:
+                mgr.encrypt(args.password)
+            mgr.export(args.archive, compression_format=args.format)
+
+        # --- EXTRACT ---
+        elif args.command == "extract":
+            mgr.import_archive(args.archive, password=args.password)
+            dest_path = os.path.abspath(args.dest)
+            os.makedirs(dest_path, exist_ok=True)
+
+            logger.log(f"Extracting to {dest_path}...")
+            shutil.copytree(mgr.temp_dir, dest_path, dirs_exist_ok=True)
+            logger.log("Extraction finished.")
+
+        # --- ADD (Update) ---
+        elif args.command == "add":
+            mgr.import_archive(args.archive, password=args.password)
+            mgr.add(args.source, dest_path_in_archive=args.dest_path)
+            if args.password:
+                mgr.encrypt(args.password)
+            output_path = args.out if args.out else args.archive
+            mgr.export(output_path, compression_format=args.format)
+
+        # --- RM (Remove) ---
+        elif args.command == "rm":
+            mgr.import_archive(args.archive, password=args.password)
+            mgr.remove(args.target)
+            if args.password:
+                mgr.encrypt(args.password)
+            output_path = args.out if args.out else args.archive
+            mgr.export(output_path, compression_format=args.format)
+
+    except Exception as e:
+        logger.log(str(e), "ERROR")
+        sys.exit(1)
+    finally:
+        mgr.close()
+
 if __name__ == "__main__":
-    cli_mode()
+    main()
