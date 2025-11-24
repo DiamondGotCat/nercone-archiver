@@ -1,0 +1,28 @@
+[build-system]
+requires = ["uv_build>=0.9.5,<0.10.0"]
+build-backend = "uv_build"
+
+[project]
+name = "nercone-archiver"
+version = "0.1.0"
+description = "A simple and easy-to-use CLI tool for manipulating compressed files"
+readme = { file = "README.md", content-type = "text/markdown" }
+authors = [
+    { name = "Nercone", email = "nercone@diamondgotcat.net" }
+]
+license = { text = "MIT" }
+requires-python = ">=3.8"
+dependencies = [
+    "nercone-modern",
+    "py7zr",
+    "rarfile",
+    "pyzipper"
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent"
+]
+
+[project.scripts]
+nyarchiver = "nercone_archiver.cli:main"
